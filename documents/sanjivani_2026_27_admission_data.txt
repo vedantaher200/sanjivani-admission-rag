@@ -1,0 +1,309 @@
+SANJIVANI UNIVERSITY — AI ADMISSION ASSISTANT
+FINAL PROJECT KNOWLEDGE DATA
+Academic Year: 2026–27
+
+IMPORTANT:
+This file is for the Sanjivani University RAG project only.
+It combines previously identified official Sanjivani University information with
+2026–27 project data supplied by the project owner.
+
+Do not present estimated/project-provided information as an official university document.
+If information is unavailable, answer exactly:
+"I couldn't find this information in the available admission documents."
+
+============================================================
+1. UNIVERSITY
+============================================================
+
+University:
+Sanjivani University
+
+Location:
+Kopargaon, Maharashtra – 423601
+
+This project is ONLY for Sanjivani University.
+Do NOT mix it with Sanjivani College of Engineering.
+
+============================================================
+2. FINALIZED 2026–27 PROJECT DATA
+============================================================
+
+Academic Year: 2026–27
+
+B.Tech CSE Annual Fee:
+₹2,12,000 per year
+
+Admission/Application Start Date:
+1 July 2026
+
+Start Date Status:
+ESTIMATED PROJECT DATA.
+This date must be described as estimated/project data, not as a verified
+official university notification.
+
+Admission/Application Last Date:
+14 September 2026
+
+Current Admission Deadline:
+14 September 2026
+
+Deadline Status:
+PROVIDED PROJECT DATA.
+
+Total Seats:
+160
+
+Seat Status:
+PROVIDED PROJECT DATA.
+
+B.Tech CSE Cutoff:
+No fixed cutoff specified in the provided project data.
+
+Scholarship:
+No scholarship listed in the provided 2026–27 project data.
+
+Basic Hostel:
+₹50,000 per year
+
+AC Hostel:
+₹1,00,000 per year
+
+============================================================
+3. PROGRAMS PREVIOUSLY IDENTIFIED ON THE OFFICIAL UNIVERSITY WEBSITE
+============================================================
+
+Engineering & Technology programs previously identified:
+- B.Tech Computer Science & Engineering
+- B.Tech Artificial Intelligence & Machine Learning
+- B.Tech Artificial Intelligence & Data Science
+- B.Tech CSE – Cyber Security
+- Integrated B.Tech CSE
+- Integrated B.Tech AIML
+- B.Tech Mechanical
+- M.Tech CSE
+- M.Tech Integrated CSE
+- MCA
+- Ph.D. CSE
+
+Other programs previously identified:
+- BCA
+- BBA
+- B.Com
+- MBA
+- B.Pharm
+- M.Pharm
+- B.Sc programs
+- M.Sc programs
+- Ph.D. programs
+
+IMPORTANT:
+Do not infer current 2026–27 intake, fee or availability for every program
+unless a current 2026–27 source confirms it.
+
+============================================================
+4. B.TECH ELIGIBILITY — OFFICIAL 2025–26 INFORMATION
+============================================================
+
+The following was previously identified from the official Sanjivani University
+Admission Policy for AY 2025–26:
+
+- 10+2/HSC qualification is required.
+- Physics and Mathematics are required.
+- A relevant third subject such as Chemistry, Biology, Biotechnology,
+  Computer Science or Information Technology may apply according to the policy.
+- Open category minimum: 45%.
+- Maharashtra Reserved/EWS/PwD categories minimum: 40%.
+- The policy mentions applicable entrance examinations including MHT-CET PCM,
+  Sanjivani University Entrance Test, PERA and JEE, subject to applicable
+  program/admission rules.
+
+YEAR WARNING:
+This is 2025–26 official policy information.
+Do not call it the official 2026–27 eligibility unless a current 2026–27
+official document confirms it.
+
+============================================================
+5. ADMISSION PROCESS — OFFICIAL 2025–26 FRAMEWORK
+============================================================
+
+Previously identified official policy framework:
+
+1. Online application
+2. Application fee/payment
+3. Eligibility scrutiny
+4. Applicable entrance examination
+5. Merit preparation/list
+6. Course/seat allocation
+7. Original document verification
+8. Fee payment
+9. Admission completion / PRN process
+
+Application fee in the 2025–26 policy:
+₹1,000
+
+YEAR WARNING:
+The ₹1,000 application fee is from the 2025–26 official policy.
+Do not automatically call it the 2026–27 application fee.
+
+============================================================
+6. REQUIRED DOCUMENTS — OFFICIAL 2025–26 INFORMATION
+============================================================
+
+Previously identified documents include, where applicable:
+
+General:
+- 10th marksheet and passing certificate
+- 12th marksheet and passing certificate
+- Applicable diploma certificate
+- Entrance examination scorecard
+- Aadhaar card
+- Transfer/Leaving Certificate
+- Migration Certificate, where applicable
+- Recent passport-size photographs
+
+Postgraduate:
+- Bachelor's degree marksheets/certificate, where applicable
+
+Direct Second Year:
+- Diploma certificate and marksheets, where applicable
+
+Reserved/special categories, where applicable:
+- Caste Certificate
+- Caste Validity Certificate
+- Non-Creamy Layer Certificate
+- EWS Certificate
+- Domicile Certificate
+- Gap Certificate
+- Disability Certificate
+- Defence/Ex-Servicemen Certificate
+
+YEAR WARNING:
+This list comes from previously identified policy information and may be subject
+to current 2026–27 requirements. Do not invent additional requirements.
+
+============================================================
+7. FEES
+============================================================
+
+CURRENT PROJECT DATA — 2026–27:
+B.Tech CSE:
+₹2,12,000 per year
+
+HISTORICAL OFFICIAL DATA — 2025–26:
+A previously identified official Sanjivani University fee/annexure document
+showed B.Tech fee components totaling ₹1,98,000.
+
+IMPORTANT:
+Do not use ₹1,98,000 as the 2026–27 B.Tech CSE fee.
+Use the finalized 2026–27 project value ₹2,12,000 for the current project,
+and identify it as project-provided data.
+
+============================================================
+8. HOSTEL
+============================================================
+
+CURRENT PROJECT DATA — 2026–27:
+Basic Hostel:
+₹50,000 per year
+
+AC Hostel:
+₹1,00,000 per year
+
+Do not replace these current project values with historical 2025–26 figures.
+
+============================================================
+9. SCHOLARSHIP
+============================================================
+
+CURRENT PROJECT DATA — 2026–27:
+No scholarship listed.
+
+IMPORTANT:
+An older official Sanjivani University scholarship policy was previously identified.
+Do not automatically transfer its older rules or amounts to 2026–27.
+
+============================================================
+10. CUTOFF
+============================================================
+
+2026–27 project information:
+No fixed cutoff specified.
+
+Do not invent a percentile, rank or minimum cutoff.
+
+============================================================
+11. IMPORTANT DATES
+============================================================
+
+Academic Year:
+2026–27
+
+Application/Admission Start:
+1 July 2026
+STATUS: Estimated project data.
+
+Application/Admission Last Date:
+14 September 2026
+STATUS: Provided project data.
+
+Current Admission Deadline:
+14 September 2026
+
+Do not invent other dates unless they exist in indexed official/current documents
+or are explicitly provided project data.
+
+============================================================
+12. CONTACT INFORMATION
+============================================================
+
+Previously identified official contact information:
+
+Phone:
++91 9137700700
++91 9130191301
+
+Email:
+contact@sanjivani.edu.in
+
+Location:
+Kopargaon, Near Shirdi, Maharashtra – 423601
+
+Do not invent additional contact details.
+
+============================================================
+13. MANDATORY RAG RULES
+============================================================
+
+1. Answer ONLY from retrieved Sanjivani University context.
+2. Never use general model knowledge to fill missing information.
+3. Never invent fees, dates, eligibility, scholarships, seats, cutoff or hostel fees.
+4. Never mix Sanjivani University with Sanjivani College of Engineering.
+5. Respect academic year.
+6. Prefer current 2026–27 project data when answering current project questions.
+7. Clearly identify estimated/project-provided information.
+8. If the answer is not present in retrieved context, answer exactly:
+
+"I couldn't find this information in the available admission documents."
+
+9. When possible, show source, page, academic year and data type.
+
+============================================================
+14. EXAMPLE QUESTIONS
+============================================================
+
+- What is the B.Tech CSE fee for 2026-27?
+- When does admission start?
+- What is the last date for admission?
+- How many seats are available?
+- Is there a cutoff?
+- Is there a scholarship?
+- What is the hostel fee?
+- What is the AC hostel fee?
+- What is the eligibility for B.Tech CSE?
+- What documents are required for admission?
+- What is the admission process?
+- What courses are available at Sanjivani University?
+
+============================================================
+END
+============================================================
