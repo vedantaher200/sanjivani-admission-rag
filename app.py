@@ -86,10 +86,13 @@ STRICT GROUNDING RULES:
 {FALLBACK_ANSWER}
 
 STYLE:
-- Give the direct answer first.
+- Give only the direct answer to the student's question.
 - Keep factual answers concise.
 - Do not add unsupported details.
-- Do not create a Sources section; the application displays sources separately.
+- Do not create Sources, Evidence, Academic Year, Data Type, Information Type,
+  Page, or other metadata sections.
+- Do not mention retrieval, chunks, embeddings, vector databases, or internal
+  project instructions.
 """
 
 
@@ -137,13 +140,6 @@ def apply_styles() -> None:
             border-radius: 999px;
             font-size: .82rem;
             font-weight: 700;
-        }
-
-        .evidence-box {
-            padding: .65rem .85rem;
-            border-radius: 10px;
-            border: 1px solid rgba(128,128,128,.35);
-            margin-bottom: .5rem;
         }
 
         .stButton > button {
@@ -725,7 +721,7 @@ def question_year(question: str) -> str | None:
     q = question.replace("–", "-").replace("—", "-")
 
     match = re.search(
-        r"\b(20\d{2})\s*-\s*(20?\d{2})\b",
+        r"\b(20\d{2})\s*-\s*(\d{2}|\d{4})\b",
         q,
     )
 
@@ -735,8 +731,9 @@ def question_year(question: str) -> str | None:
     first = match.group(1)
     second = match.group(2)
 
-    if len(second) == 2:
-        second = first[:2] + second
+    # Normalize both 2025-26 and 2025-2026 to the metadata format 2025-26.
+    if len(second) == 4:
+        second = second[-2:]
 
     return f"{first}-{second}"
 
@@ -817,6 +814,37 @@ def lexical_score(question: str, document: str) -> int:
 # RETRIEVAL
 # ============================================================
 
+def date_question_mode(question: str) -> str:
+    """Return the specific admission-date fact requested by the user."""
+
+    q = question.lower()
+
+    start_terms = (
+        "start",
+        "begin",
+        "opening",
+        "opens",
+        "commence",
+        "beginning",
+    )
+    closing_terms = (
+        "last date",
+        "closing",
+        "close",
+        "deadline",
+        "end date",
+        "ending",
+    )
+
+    if any(term in q for term in start_terms):
+        return "start"
+
+    if any(term in q for term in closing_terms):
+        return "deadline"
+
+    return "all"
+
+
 def retrieve_context(
     question: str,
     threshold: float,
@@ -830,13 +858,25 @@ def retrieve_context(
     requested_year = question_year(question)
     intent = detect_question_intent(question)
 
-    # --------------------------------------------------------
-    # IMPORTANT: read all indexed records first.
-    # This makes metadata filtering deterministic and avoids
-    # losing a correct chunk because vector similarity ranked
-    # an unrelated chunk above it.
-    # --------------------------------------------------------
+    # Current factual questions without an explicit year use the
+    # current project year. Historical data is never silently promoted
+    # to current information.
+    current_fact_intents = {
+        "Fee",
+        "Hostel",
+        "Scholarship",
+        "Cutoff",
+        "Seats",
+        "Admission Dates",
+    }
 
+    target_year = requested_year
+    if target_year is None and intent in current_fact_intents:
+        target_year = "2026-27"
+
+    date_mode = date_question_mode(question) if intent == "Admission Dates" else "all"
+
+    # Read all indexed records so metadata filtering is deterministic.
     all_records = collection.get(
         include=["documents", "metadatas"]
     )
@@ -849,37 +889,61 @@ def retrieve_context(
     for document, metadata in zip(all_documents, all_metadatas):
         metadata = metadata or {}
 
+        text = str(document)
+        lower_doc = text.lower()
         year = str(metadata.get("academic_year", "Unknown"))
         data_type = str(metadata.get("data_type", "Unknown"))
         info_type = str(metadata.get("information_type", "General"))
 
-        # Never use project instructions for factual answers.
-        if data_type == "Project Instruction":
+        # Project instructions are never evidence for an admission fact.
+        if data_type.lower() == "project instruction":
             continue
 
-        # Explicit year must match exactly.
-        if requested_year and year != requested_year:
+        # For known current/historical fact intents, use only the intended
+        # academic year. This removes unrelated Unknown-year fee/date chunks.
+        if target_year is not None and year != target_year:
             continue
 
-        # Current project questions must not use 2025-26.
+        # A question explicitly asking about 2025-26 must use 2025-26 only.
+        if requested_year == "2025-26" and year != "2025-26":
+            continue
+
+        # A current factual question must never fall back to 2025-26.
         if (
             requested_year is None
-            and intent != "General"
+            and intent in current_fact_intents
             and year == "2025-26"
         ):
             continue
 
-        # If the metadata says the exact information type, give it
-        # a strong deterministic priority.
+        # ----------------------------------------------------
+        # DATE-SPECIFIC FILTERING
+        # ----------------------------------------------------
+        # The admission-date section contains both the start date and
+        # closing/deadline date. Do not show the other date as a source
+        # when the student asks for only one of them.
+        if intent == "Admission Dates":
+            if date_mode == "start":
+                if not (
+                    "admission/application start date" in lower_doc
+                    or "start date" in lower_doc
+                ):
+                    continue
+
+            elif date_mode == "deadline":
+                if not (
+                    "current admission deadline" in lower_doc
+                    or "admission/application last date" in lower_doc
+                    or "last date" in lower_doc
+                ):
+                    continue
+
+        # ----------------------------------------------------
+        # INFORMATION-TYPE MATCH
+        # ----------------------------------------------------
         info_match = int(info_type.lower() == intent.lower())
 
-        # Also calculate lexical evidence.
-        lexical = lexical_score(question, str(document))
-
-        # Stronger lexical checks for common factual queries.
-        lower_doc = str(document).lower()
-        lower_q = question.lower()
-
+        lexical = lexical_score(question, text)
         exact_fact_bonus = 0
 
         if intent == "Fee" and ("fee" in lower_doc or "fees" in lower_doc):
@@ -904,27 +968,34 @@ def retrieve_context(
             exact_fact_bonus += 10
 
         if intent == "Required Documents" and (
-            "required documents" in lower_doc
-            or "documents" in lower_doc
+            "required documents" in lower_doc or "documents" in lower_doc
         ):
             exact_fact_bonus += 10
 
-        if intent == "Admission Dates" and (
-            "date" in lower_doc or "deadline" in lower_doc
-        ):
-            exact_fact_bonus += 8
+        if intent == "Admission Dates":
+            if date_mode == "start":
+                exact_fact_bonus += 14
+            elif date_mode == "deadline":
+                exact_fact_bonus += 14
+            elif "date" in lower_doc or "deadline" in lower_doc:
+                exact_fact_bonus += 8
 
         # Prefer provided current project data for current 2026-27 facts.
         current_bonus = 0
-        if (
-            (requested_year == "2026-27" or year == "2026-27")
-            and data_type == "Provided Project Data"
-        ):
+        if target_year == "2026-27" and data_type == "Provided Project Data":
             current_bonus = 6
 
-        # Prefer historical official data for explicit 2025-26.
+        # Estimated start-date evidence is intentionally retained for
+        # start-date questions, but it should rank below a directly provided
+        # closing/deadline fact when the question asks for the deadline.
+        estimated_bonus = 0
+        if intent == "Admission Dates" and date_mode == "start":
+            if data_type == "Estimated Project Data":
+                estimated_bonus = 3
+
+        # Prefer historical official data for explicit 2025-26 questions.
         historical_bonus = 0
-        if requested_year == "2025-26" and data_type == "Official University Document":
+        if target_year == "2025-26" and data_type == "Official University Document":
             historical_bonus = 6
 
         score = (
@@ -932,14 +1003,14 @@ def retrieve_context(
             + lexical * 3
             + exact_fact_bonus
             + current_bonus
+            + estimated_bonus
             + historical_bonus
         )
 
-        # Don't include totally unrelated records in deterministic mode.
         if score > 0:
             candidates.append(
                 {
-                    "text": str(document),
+                    "text": text,
                     "source": str(metadata.get("source", "Unknown")),
                     "page": str(metadata.get("page", "Not available")),
                     "academic_year": year,
@@ -950,10 +1021,8 @@ def retrieve_context(
             )
 
     # --------------------------------------------------------
-    # If deterministic metadata/lexical retrieval found evidence,
-    # use it. Otherwise fall back to Chroma semantic retrieval.
+    # DETERMINISTIC RETRIEVAL
     # --------------------------------------------------------
-
     if candidates:
         candidates.sort(
             key=lambda x: (-x["score"], x["text"])
@@ -973,9 +1042,8 @@ def retrieve_context(
         return relevant, build_context(relevant)
 
     # --------------------------------------------------------
-    # Semantic fallback
+    # SEMANTIC FALLBACK
     # --------------------------------------------------------
-
     model = get_embedding_model()
 
     query_embedding = model.encode(
@@ -1002,6 +1070,8 @@ def retrieve_context(
     ):
         metadata = metadata or {}
         distance_value = float(distance)
+        text = str(document)
+        lower_doc = text.lower()
 
         if distance_value > threshold:
             continue
@@ -1010,25 +1080,36 @@ def retrieve_context(
         data_type = str(metadata.get("data_type", "Unknown"))
         info_type = str(metadata.get("information_type", "General"))
 
-        if data_type == "Project Instruction":
+        if data_type.lower() == "project instruction":
             continue
 
-        if requested_year and year != requested_year:
+        if target_year is not None and year != target_year:
             continue
 
-        if requested_year is None and year == "2025-26":
-            continue
+        if intent == "Admission Dates":
+            if date_mode == "start" and not (
+                "admission/application start date" in lower_doc
+                or "start date" in lower_doc
+            ):
+                continue
+
+            if date_mode == "deadline" and not (
+                "current admission deadline" in lower_doc
+                or "admission/application last date" in lower_doc
+                or "last date" in lower_doc
+            ):
+                continue
 
         semantic_candidates.append(
             {
-                "text": str(document),
+                "text": text,
                 "source": str(metadata.get("source", "Unknown")),
                 "page": str(metadata.get("page", "Not available")),
                 "academic_year": year,
                 "data_type": data_type,
                 "information_type": info_type,
                 "distance": distance_value,
-                "score": lexical_score(question, str(document)),
+                "score": lexical_score(question, text),
             }
         )
 
@@ -1048,7 +1129,6 @@ def retrieve_context(
     ]
 
     return relevant, build_context(relevant)
-
 
 def build_context(relevant: list[dict[str, str]]) -> str:
     return "\n\n".join(
@@ -1146,8 +1226,6 @@ def build_grounded_answer(
             return (
                 "For AY 2026-27, the B.Tech CSE annual fee is "
                 "**₹2,12,000 per year**.\n\n"
-                "This is **provided project data**, not presented here "
-                "as a verified official 2026-27 fee notification."
             )
 
         if fee and effective_year == "2025-26" and "1,98,000" in evidence:
@@ -1192,8 +1270,6 @@ def build_grounded_answer(
                 return (
                     "Admission/application is listed as starting on "
                     "**1 July 2026**.\n\n"
-                    "Status: **Estimated project data**; it is not "
-                    "presented as a verified official university notification."
                 )
 
         if any(
@@ -1209,15 +1285,12 @@ def build_grounded_answer(
             if final_date:
                 return (
                     f"The current admission deadline is **{final_date}**.\n\n"
-                    "Status: **Provided project data**."
                 )
 
         if start and last:
             return (
                 f"For AY 2026-27, admission/application is listed from "
                 f"**{start}** to **{last}**.\n\n"
-                "The start date is **estimated project data**, while the "
-                "last date is **provided project data**."
             )
 
         return FALLBACK_ANSWER
@@ -1230,7 +1303,6 @@ def build_grounded_answer(
         if seats and seats.isdigit():
             return (
                 f"The provided project data lists **{seats} seats**.\n\n"
-                "Status: **Provided project data** for AY 2026-27."
             )
         return FALLBACK_ANSWER
 
@@ -1246,13 +1318,11 @@ def build_grounded_answer(
         if "basic" in q and basic:
             return (
                 f"The basic hostel fee is **{basic} per year**.\n\n"
-                "Status: **Provided project data** for AY 2026-27."
             )
 
         if "ac" in q and ac:
             return (
                 f"The AC hostel fee is **{ac} per year**.\n\n"
-                "Status: **Provided project data** for AY 2026-27."
             )
 
         if basic and ac:
@@ -1275,7 +1345,6 @@ def build_grounded_answer(
         ):
             return (
                 "No scholarship is listed in the provided 2026-27 project data.\n\n"
-                "This does not transfer older scholarship rules to 2026-27."
             )
 
         return FALLBACK_ANSWER
@@ -1292,7 +1361,6 @@ def build_grounded_answer(
             return (
                 "There is **no fixed cutoff specified** in the provided "
                 "2026-27 project data.\n\n"
-                "No percentile or rank is being inferred."
             )
 
         return FALLBACK_ANSWER
@@ -1553,6 +1621,127 @@ def build_grounded_answer(
     return None
 
 
+
+# ============================================================
+# BUILT-IN PROJECT EVIDENCE FALLBACK
+# ============================================================
+
+def load_project_text() -> str:
+    project_file = DOCUMENTS_DIR / PROJECT_DATA_FILE
+
+    if not project_file.exists():
+        return ""
+
+    try:
+        return clean_text(
+            project_file.read_text(
+                encoding="utf-8",
+                errors="replace",
+            )
+        )
+    except Exception:
+        return ""
+
+
+def project_section(
+    text: str,
+    section_number: str,
+) -> str:
+    """Extract one numbered section from the built-in project TXT."""
+    heading_pattern = re.compile(
+        r"(?m)^\s*(\d+)\.\s+(.+?)\s*$"
+    )
+    matches = list(heading_pattern.finditer(text))
+
+    for index, match in enumerate(matches):
+        if match.group(1) != section_number:
+            continue
+
+        section_start = match.start()
+        section_end = (
+            matches[index + 1].start()
+            if index + 1 < len(matches)
+            else len(text)
+        )
+        return text[section_start:section_end].strip()
+
+    return ""
+
+
+def project_file_evidence(
+    question: str,
+) -> list[dict[str, str]]:
+    """
+    Grounded recovery path using only the built-in project TXT.
+
+    Current finalized 2026-27 facts come from section 2.
+    Historical 2025-26 policy facts come from sections 4, 5 and 6.
+    No outside knowledge is introduced.
+    """
+
+    text = load_project_text()
+    if not text:
+        return []
+
+    intent = detect_question_intent(question)
+    requested_year = question_year(question)
+
+    current_intents = {
+        "Fee",
+        "Hostel",
+        "Scholarship",
+        "Cutoff",
+        "Seats",
+        "Admission Dates",
+    }
+
+    historical_sections = {
+        "Eligibility": "4",
+        "Admission Process": "5",
+        "Required Documents": "6",
+    }
+
+    if requested_year == "2025-26" and intent in historical_sections:
+        section = project_section(
+            text,
+            historical_sections[intent],
+        )
+        if not section:
+            return []
+
+        return [
+            {
+                "text": section,
+                "source": PROJECT_DATA_FILE,
+                "page": "Not available",
+                "academic_year": "2025-26",
+                "data_type": "Official University Document",
+                "information_type": intent,
+            }
+        ]
+
+    if (
+        (requested_year in (None, "2026-27"))
+        and intent in current_intents
+    ):
+        section = project_section(text, "2")
+        if not section:
+            return []
+
+        return [
+            {
+                "text": section,
+                "source": PROJECT_DATA_FILE,
+                "page": "Not available",
+                "academic_year": "2026-27",
+                "data_type": "Provided Project Data",
+                "information_type": intent,
+            }
+        ]
+
+    return []
+
+
 # ============================================================
 # OLLAMA
 # ============================================================
@@ -1683,63 +1872,11 @@ def clear_database() -> None:
 
 
 # ============================================================
-# SOURCE DISPLAY
-# ============================================================
-
-def source_lines(sources: list[dict[str, str]]) -> None:
-    st.markdown("**Sources used:**")
-
-    seen: set[tuple[str, str, str, str, str]] = set()
-
-    for source in sources:
-        key = (
-            source["source"],
-            source["page"],
-            source["academic_year"],
-            source["data_type"],
-            source["information_type"],
-        )
-
-        if key in seen:
-            continue
-
-        data_type = source["data_type"]
-
-        st.markdown(
-            f"📄 **{source['source']}**  \n"
-            f"Academic Year: {source['academic_year']}  \n"
-            f"Data Type: {data_type}  \n"
-            f"Information Type: {source['information_type']}  \n"
-            f"Page: {source['page']}"
-        )
-
-        seen.add(key)
-
-
-def evidence_badge(sources: list[dict[str, str]]) -> None:
-    if not sources:
-        return
-
-    best = sources[0]
-
-    st.markdown(
-        f"""
-        <div class="evidence-box">
-        <strong>✓ Evidence matched</strong><br>
-        Academic Year: {best['academic_year']}
-        &nbsp;•&nbsp;
-        Type: {best['information_type']}
-        &nbsp;•&nbsp;
-        Data: {best['data_type']}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-# ============================================================
 # QUESTION PROCESSING
 # ============================================================
+# The UI intentionally displays only the final answer to the student's
+# question. Retrieval metadata is used internally for grounding.
+
 
 def process_question(
     question: str,
@@ -1771,6 +1908,17 @@ def process_question(
         # for fees, dates, seats, hostel, scholarship, cutoff, and the
         # known historical policy sections.
         answer = build_grounded_answer(question, sources)
+
+        # If retrieval missed the relevant chunk, recover once from the
+        # same built-in project TXT. This is still fully grounded and does
+        # not add outside information.
+        if answer == FALLBACK_ANSWER:
+            project_sources = project_file_evidence(question)
+
+            if project_sources:
+                sources = project_sources
+                context = build_context(sources)
+                answer = build_grounded_answer(question, sources)
 
         # If the deterministic builder does not handle the question,
         # let Ollama answer from the same retrieved evidence.
@@ -2036,14 +2184,9 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-        if (
-            message["role"] == "assistant"
-            and message.get("sources")
-        ):
-            evidence_badge(message["sources"])
-
-            with st.container(border=True):
-                source_lines(message["sources"])
+        # Only the assistant answer is displayed.
+        # Retrieval metadata remains internal for grounding and is not
+        # shown to the student.
 
 
 # ============================================================
